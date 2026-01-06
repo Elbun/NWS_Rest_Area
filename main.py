@@ -2,54 +2,43 @@
 import requests
 import pandas as pd
 from datetime import datetime
+import mysql.connector
 import streamlit as st
 
 
 ## ==================================================
 ## App : NSW Rest Area Analysis
-## 1. Retrive data from API
-## 2. Store data into a dataframe
-## 3. Show data using a map chart
-## 4. Analyze data with EDA
+## 1. Retrive data from database
+## 2. Show data using a map chart
+## 3. Analyze data with EDA
 ## ==================================================
 
+try:
+    mydb = mysql.connector.connect(
+        host="o8nk3m.h.filess.io",
+        port="3307",
+        user="NSW_Rest_Areas_capoldest",
+        password="Abcd1234%^&*",
+        database="NSW_Rest_Areas_capoldest",
+        ssl_disabled=False,
+        connection_timeout=10
+    )
 
-api_url2 = "https://api.transport.nsw.gov.au/v1/roads/spatial"
-headers = {
-    "accept": "application/json",
-    "Authorization": "apikey eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJOOF9jQlNEb1l6ajQ2M1NyVlFvZi03QjAyTkYyZXh5XzZwR1dfM29FeElvIiwiaWF0IjoxNzY3NDM0Nzg0fQ.nuvoL0Uyv9s4PUWw6V8jG7zvR3S6e9XJbAl6jN11f5o"
-}
-format = "json"
-query = "select * from rest_areas"
-req_api_url = f'''{api_url2}?format={format}&q={query.replace(" ", "%20")}'''
+    if mydb.is_connected():
+        cursor = mydb.cursor()
 
-response = requests.get(req_api_url, headers=headers)
+        cursor.execute("SELECT * FROM dataset")
+        rows = cursor.fetchall()
 
-if response.status_code == 200:
-    data = response.json()
-    rows = []
-    for feature in data["features"]:
-        attrs = feature["attributes"]
-        geometry = feature.get("geometry", {})
-        points = geometry.get("points", [[None, None]])
-        longitude, latitude = points[0]
-        row = {
-            # metadata (similar to your timestamps)
-            "retrieved_timestamp": datetime.utcnow().timestamp(),
-            "retrieved_datetime": datetime.utcnow(),
+        # Optional: get column names
+        columns = [col[0] for col in cursor.description]
 
-            # geometry
-            "longitude": longitude,
-            "latitude": latitude,
-        }
-        # merge all attributes dynamically
-        row.update(attrs)
-        rows.append(row)
+        # Convert to pandas DataFrame
+        df = pd.DataFrame(rows, columns=columns)
 
-    df = pd.DataFrame(rows)
+        st.write(df)
+        cursor.close()
+        mydb.close()
 
-    st.write(df)
-    
-else:
-    st.write(f"Error code : {response.status_code}")
-    st.write(f"An error occurred : {requests.exceptions.RequestException}")
+except mysql.connector.Error as err:
+    st.write(f"Connection to database error : {err}")
