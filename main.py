@@ -20,7 +20,7 @@ try:
         user="NSW_Rest_Areas_capoldest",
         password="Abcd1234%^&*",
         database="NSW_Rest_Areas_capoldest",
-        ssl_disabled=False,
+        # ssl_disabled=False,
         connection_timeout=10
     )
 
@@ -42,3 +42,4 @@ try:
 
 except mysql.connector.Error as err:
     st.write(f"Connection to database error : {err}")
+
